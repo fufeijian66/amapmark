@@ -9,7 +9,12 @@ export default function Home() {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<{
+    locateMarker: (marker: Marker) => void;
+    captureMap: () => Promise<string>;
+    getDistrictBoundary: () => Promise<unknown>;
+  } | null>(null);
+  const [isListVisible, setIsListVisible] = useState(true);
 
   // 加载标记数据
   useEffect(() => {
@@ -98,9 +103,26 @@ export default function Home() {
   };
 
   return (
-    <main className="flex h-screen w-full">
+    <main className="flex h-screen w-full relative">
+      {/* 隐藏/显示按钮 */}
+      <button 
+        className={`absolute top-1/2 transform -translate-y-1/2 z-10 bg-white shadow-md rounded-r-md p-2 border border-gray-300 transition-all ${isListVisible ? 'right-1/4' : 'right-0'}`}
+        onClick={() => setIsListVisible(!isListVisible)}
+        title={isListVisible ? "隐藏列表" : "显示列表"}
+      >
+        {isListVisible ? (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+          </svg>
+        ) : (
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-700" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+          </svg>
+        )}
+      </button>
+      
       {/* 地图区域 */}
-      <div className="w-3/4 h-full">
+      <div className={`h-full transition-all duration-300 ${isListVisible ? 'w-3/4' : 'w-full'}`}>
         <MapComponent
           ref={mapRef}
           markers={markers}
@@ -110,7 +132,7 @@ export default function Home() {
       </div>
 
       {/* 列表区域 */}
-      <div className="w-1/4 h-full overflow-auto border-l">
+      <div className={`h-full overflow-auto border-l transition-all duration-300 ${isListVisible ? 'w-1/4' : 'w-0 opacity-0 overflow-hidden'}`}>
         <MarkerList
           markers={markers}
           loading={loading}

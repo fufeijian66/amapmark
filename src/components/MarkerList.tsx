@@ -251,59 +251,59 @@ export const MarkerList = ({
   return (
     <div className="h-full flex flex-col">
       {/* 标题和工具栏 */}
-      <div className="p-4 border-b">
-        <h2 className="text-xl font-bold mb-4">标记点列表</h2>
+      <div className="p-3 border-b">
+        <h2 className="text-lg font-bold mb-2">标记点列表</h2>
         
         {/* 搜索框 */}
-        <div className="mb-4">
+        <div className="mb-2">
           <input
             type="text"
             placeholder="搜索名称或备注..."
             value={searchTerm}
             onChange={handleSearchChange}
-            className="w-full p-2 border rounded"
+            className="w-full p-1.5 border rounded text-sm"
           />
         </div>
         
         {/* 排序选项 */}
-        <div className="flex items-center mb-4">
-          <span className="mr-2">排序:</span>
+        <div className="flex items-center mb-2">
+          <span className="mr-2 text-sm">排序:</span>
           <button
             onClick={() => handleSortChange('importance')}
-            className={`mr-2 px-2 py-1 rounded ${sortBy === 'importance' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+            className={`mr-1 px-1.5 py-0.5 rounded text-xs ${sortBy === 'importance' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
           >
             关注级别 {sortBy === 'importance' && (sortDirection === 'asc' ? '↑' : '↓')}
           </button>
           <button
             onClick={() => handleSortChange('name')}
-            className={`mr-2 px-2 py-1 rounded ${sortBy === 'name' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+            className={`mr-1 px-1.5 py-0.5 rounded text-xs ${sortBy === 'name' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
           >
             名称 {sortBy === 'name' && (sortDirection === 'asc' ? '↑' : '↓')}
           </button>
           <button
             onClick={() => handleSortChange('createdAt')}
-            className={`px-2 py-1 rounded ${sortBy === 'createdAt' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+            className={`px-1.5 py-0.5 rounded text-xs ${sortBy === 'createdAt' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
           >
             时间 {sortBy === 'createdAt' && (sortDirection === 'asc' ? '↑' : '↓')}
           </button>
         </div>
         
         {/* 导入/导出按钮 */}
-        <div className="flex space-x-2">
+        <div className="flex space-x-1 text-xs">
           <button 
             onClick={exportToExcel} 
-            className="px-3 py-1 bg-green-500 text-white rounded"
+            className="px-2 py-0.5 bg-green-500 text-white rounded"
             disabled={sortedMarkers.length === 0}
           >
             导出Excel
           </button>
           <button 
             onClick={exportMapScreenshot} 
-            className="px-3 py-1 bg-blue-500 text-white rounded"
+            className="px-2 py-0.5 bg-blue-500 text-white rounded"
           >
             导出地图
           </button>
-          <label className="px-3 py-1 bg-blue-500 text-white rounded cursor-pointer">
+          <label className="px-2 py-0.5 bg-blue-500 text-white rounded cursor-pointer">
             导入Excel
             <input
               type="file"
@@ -319,11 +319,11 @@ export const MarkerList = ({
       <div className="flex-grow overflow-auto">
         {loading ? (
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-            <p className="ml-2">加载中...</p>
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+            <p className="ml-2 text-sm">加载中...</p>
           </div>
         ) : sortedMarkers.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-gray-500">
+          <div className="flex items-center justify-center h-full text-gray-500 text-sm">
             {searchTerm ? '没有找到匹配的标记' : '暂无标记点'}
           </div>
         ) : (
@@ -331,40 +331,40 @@ export const MarkerList = ({
             {sortedMarkers.map((marker) => (
               <li 
                 key={marker.id}
-                className={`p-4 hover:bg-gray-50 cursor-pointer ${selectedMarker?.id === marker.id ? 'bg-blue-50' : ''}`}
+                className={`p-2 hover:bg-gray-50 cursor-pointer ${selectedMarker?.id === marker.id ? 'bg-blue-50' : ''}`}
               >
                 {isEditing === marker.id ? (
                   // 编辑表单
-                  <form onSubmit={handleEditSubmit} className="space-y-3">
+                  <form onSubmit={handleEditSubmit} className="space-y-2">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">名称</label>
+                      <label className="block text-xs font-medium text-gray-700">名称</label>
                       <input
                         type="text"
                         name="name"
                         value={editForm.name || ''}
                         onChange={handleEditChange}
-                        className="mt-1 block w-full border rounded-md p-2"
+                        className="mt-0.5 block w-full border rounded-md p-1 text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">地址</label>
+                      <label className="block text-xs font-medium text-gray-700">地址</label>
                       <input
                         type="text"
                         name="address"
                         value={editForm.address || ''}
                         onChange={handleEditChange}
-                        className="mt-1 block w-full border rounded-md p-2"
+                        className="mt-0.5 block w-full border rounded-md p-1 text-sm"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">关注级别</label>
+                      <label className="block text-xs font-medium text-gray-700">关注级别</label>
                       <select
                         name="importance"
                         value={editForm.importance}
                         onChange={handleEditChange}
-                        className="mt-1 block w-full border rounded-md p-2"
+                        className="mt-0.5 block w-full border rounded-md p-1 text-sm"
                       >
                         {[0, 1, 2, 3, 4, 5].map((level) => (
                           <option key={level} value={level}>
@@ -374,25 +374,26 @@ export const MarkerList = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">备注</label>
+                      <label className="block text-xs font-medium text-gray-700">备注</label>
                       <textarea
                         name="remark"
                         value={editForm.remark || ''}
                         onChange={handleEditChange}
-                        className="mt-1 block w-full border rounded-md p-2"
+                        className="mt-0.5 block w-full border rounded-md p-1 text-sm"
+                        rows={2}
                       />
                     </div>
                     <div className="flex justify-end space-x-2">
                       <button
                         type="button"
                         onClick={cancelEditing}
-                        className="px-3 py-1 border rounded"
+                        className="px-2 py-0.5 border rounded text-xs"
                       >
                         取消
                       </button>
                       <button
                         type="submit"
-                        className="px-3 py-1 bg-blue-500 text-white rounded"
+                        className="px-2 py-0.5 bg-blue-500 text-white rounded text-xs"
                       >
                         保存
                       </button>
@@ -401,40 +402,42 @@ export const MarkerList = ({
                 ) : (
                   // 标记展示
                   <div onClick={() => onSelectMarker(marker)}>
-                    <div className="flex justify-between">
-                      <h3 className="font-medium">{marker.name}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${marker.importance > 3 ? 'bg-red-100 text-red-800' : marker.importance > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-medium text-sm">{marker.name}</h3>
+                      <span className={`px-1.5 py-0.5 rounded-full text-xs ${marker.importance > 3 ? 'bg-red-100 text-red-800' : marker.importance > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
                         级别 {marker.importance}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 my-1">{marker.address}</p>
+                    <p className="text-xs text-gray-600 my-0.5 truncate">{marker.address}</p>
                     {marker.remark && (
-                      <p className="text-sm text-gray-500 mt-1">{marker.remark}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{marker.remark}</p>
                     )}
-                    <div className="text-xs text-gray-400 mt-2">
-                      {marker.createdAt && `创建于 ${new Date(marker.createdAt).toLocaleString()}`}
-                    </div>
-                    <div className="mt-2 flex justify-end space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEditing(marker);
-                        }}
-                        className="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded"
-                      >
-                        编辑
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (confirm('确定要删除这个标记吗？')) {
-                            onDeleteMarker(marker.id);
-                          }
-                        }}
-                        className="px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded"
-                      >
-                        删除
-                      </button>
+                    <div className="text-xs text-gray-400 mt-1 flex items-center justify-between">
+                      <span className="truncate">
+                        {marker.createdAt && new Date(marker.createdAt).toLocaleString()}
+                      </span>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEditing(marker);
+                          }}
+                          className="px-1.5 py-0.5 text-xs text-blue-600 hover:bg-blue-50 rounded"
+                        >
+                          编辑
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('确定要删除这个标记吗？')) {
+                              onDeleteMarker(marker.id);
+                            }
+                          }}
+                          className="px-1.5 py-0.5 text-xs text-red-600 hover:bg-red-50 rounded"
+                        >
+                          删除
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
