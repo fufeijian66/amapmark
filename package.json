@@ -1,0 +1,51 @@
+{
+  "name": "amapmark",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:push": "drizzle-kit push",
+    "db:pull": "drizzle-kit pull"
+  },
+  "dependencies": {
+    "@amap/amap-jsapi-loader": "^1.0.1",
+    "@neondatabase/serverless": "^1.0.0",
+    "antd": "^5.24.8",
+    "autoprefixer": "^10.4.21",
+    "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.42.0",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0",
+    "next": "15.3.1",
+    "next-auth": "^4.24.11",
+    "postcss": "^8.5.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@amap/amap-jsapi-types": "^0.0.15",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/express": "^5.0.1",
+    "@types/node": "^20.17.30",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.1",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.8.3"
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
