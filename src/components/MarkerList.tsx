@@ -183,7 +183,7 @@ export const MarkerList = ({
       try {
         // 获取行政区域边界
         loadingToast.textContent = '正在获取行政区域边界...';
-        await mapRef.current.getDistrictBoundary();
+       // await mapRef.current.getDistrictBoundary();
 
         // 等待地图渲染完成
         loadingToast.textContent = '等待地图渲染完成...';

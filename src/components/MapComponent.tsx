@@ -50,6 +50,15 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
         }
 
         try {
+          // 保存当前地图状态
+          const originalCenter = map.getCenter();
+          const originalZoom = map.getZoom();
+          const originalBounds = map.getBounds();
+
+          // 调整地图视野范围
+          map.setZoom(originalZoom - 2); // 缩小2级以获取更大范围
+          map.setFitView(); // 自动调整视野以包含所有标记点
+
           // 获取地图容器
           const mapContainer = map.getContainer();
           if (!mapContainer) {
@@ -83,6 +92,12 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             originalDisplayValues.forEach(item => {
               (item.element as HTMLElement).style.display = item.value;
             });
+
+            // 恢复地图状态
+            map.setCenter(originalCenter);
+            map.setZoom(originalZoom);
+            map.setBounds(originalBounds);
+
             resolve(dataUrl);
           })
           .catch((error: Error) => {
@@ -90,6 +105,11 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             originalDisplayValues.forEach(item => {
               (item.element as HTMLElement).style.display = item.value;
             });
+            
+            // 恢复地图状态
+            map.setCenter(originalCenter);
+            map.setZoom(originalZoom);
+            map.setBounds(originalBounds);
             
             console.error('dom-to-image生成图片失败，尝试使用html2canvas', error);
             
