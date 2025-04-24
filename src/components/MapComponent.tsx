@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Marker } from '@/types/marker';
 import html2canvas from 'html2canvas';
-import * as htmlToImage from 'html-to-image';
+import domtoimage from 'dom-to-image';
 
 // 定义搜索结果类型接口
 interface SearchTip {
@@ -40,7 +40,6 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
       if (map) {
         map.setCenter([marker.longitude, marker.latitude]);
         map.setZoom(16);
-        
       }
     },
     captureMap: () => {
@@ -58,61 +57,56 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             return;
           }
 
-          // 防止地图图层被剪裁
-          const originalStyle = mapContainer.getAttribute('style') || '';
+          // 移除高德地图的logo和版权信息
+          const elementsToHide = mapContainer.querySelectorAll('.amap-logo, .amap-copyright');
+          const originalDisplayValues: { element: Element, value: string }[] = [];
           
-          // 设置临时样式，确保所有图层都可见
-          mapContainer.setAttribute('style', 
-            `${originalStyle}; overflow: visible !important; background-color: white !important;`
-          );
+          // 暂时隐藏logo和版权信息
+          elementsToHide.forEach((el: Element) => {
+            originalDisplayValues.push({
+              element: el,
+              value: (el as HTMLElement).style.display
+            });
+            (el as HTMLElement).style.display = 'none';
+          });
 
-          // 使用 html-to-image 库截取地图
-          htmlToImage.toPng(mapContainer, {
-            cacheBust: true,
-            pixelRatio: 2,
-            quality: 1.0,
-            skipFonts: true,
-            backgroundColor: '#ffffff',
-            filter: (node) => {
-              // 过滤掉 logo 和版权信息等元素
-              if (node.classList && 
-                 (node.classList.contains('amap-logo') || 
-                  node.classList.contains('amap-copyright') ||
-                  node.classList.contains('amap-controls'))) {
-                return false;
-              }
-              return true;
+          // 使用dom-to-image库生成图片
+          domtoimage.toPng(mapContainer, {
+            quality: 1,
+            bgcolor: '#fff',
+            style: {
+              'transform': 'none'
             }
           })
-          .then((dataUrl) => {
-            // 恢复原始样式
-            mapContainer.setAttribute('style', originalStyle);
-            
-            // 返回图片数据
+          .then((dataUrl: string) => {
+            // 恢复logo和版权信息的显示状态
+            originalDisplayValues.forEach(item => {
+              (item.element as HTMLElement).style.display = item.value;
+            });
             resolve(dataUrl);
           })
-          .catch((error) => {
-            // 恢复原始样式
-            mapContainer.setAttribute('style', originalStyle);
+          .catch((error: Error) => {
+            // 恢复logo和版权信息的显示状态
+            originalDisplayValues.forEach(item => {
+              (item.element as HTMLElement).style.display = item.value;
+            });
             
-            // 如果 html-to-image 失败，尝试使用 html2canvas 作为备选
-            console.warn('html-to-image 截图失败，尝试使用 html2canvas...', error);
+            console.error('dom-to-image生成图片失败，尝试使用html2canvas', error);
             
+            // 如果dom-to-image失败，回退到html2canvas
             html2canvas(mapContainer, {
               useCORS: true,
               allowTaint: true,
               scale: 2,
               logging: false,
               backgroundColor: '#ffffff',
-              ignoreElements: (element) => {
-                // 忽略地图控件和版权信息
-                return element.classList && 
-                  (element.classList.contains('amap-logo') || 
-                   element.classList.contains('amap-copyright') ||
-                   element.classList.contains('amap-controls'));
+              onclone: (clonedDoc) => {
+                // 在克隆的文档中移除不需要的元素
+                const elementsToRemove = clonedDoc.querySelectorAll('.amap-logo, .amap-copyright, .amap-controls');
+                elementsToRemove.forEach(el => el.remove());
               }
             }).then(canvas => {
-              // 将 canvas 转换为图片
+              // 将canvas转换为图片
               const imgData = canvas.toDataURL('image/png');
               resolve(imgData);
             }).catch(err => {
@@ -241,6 +235,8 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
       securityJsCode: process.env.NEXT_PUBLIC_AMAP_SECURITY_CODE || '',
     };
 
+    // 直接在地图初始化时设置preserveDrawingBuffer参数
+
     // 加载高德地图API
     const loadMap = async () => {
       try {
@@ -256,7 +252,8 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             'AMap.Geolocation',
             'AMap.Autocomplete',
             'AMap.PlaceSearch',
-            'AMap.DistrictSearch'
+            'AMap.DistrictSearch',
+            'AMap.MapType',
           ]
         });
 
@@ -274,7 +271,10 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
               new AMapInstance.TileLayer.Satellite(),
               new AMapInstance.TileLayer.RoadNet()
             ],
-            preserveDrawingBuffer: true // 支持地图截图
+            preserveDrawingBuffer: true, // 支持地图截图
+            WebGLParams: {
+              preserveDrawingBuffer: true // 确保WebGL能够正确捕获
+            }
           });
 
           // 添加工具条
@@ -288,7 +288,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
           mapInstance.add(layer);
 
           // 地图右键事件 - 显示上下文菜单
-          mapInstance.on('rightclick', (e: any) => {
+          mapInstance.on('rightclick', (e: { lnglat: { lng: number; lat: number }; pixel: { x: number; y: number } }) => {
             const { lng, lat } = e.lnglat;
             setContextMenu({
               x: e.pixel.x,
