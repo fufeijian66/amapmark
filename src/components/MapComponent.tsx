@@ -40,6 +40,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
       if (map) {
         map.setCenter([marker.longitude, marker.latitude]);
         map.setZoom(16);
+        
       }
     },
     captureMap: () => {
@@ -256,7 +257,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             'AMap.Autocomplete',
             'AMap.PlaceSearch',
             'AMap.DistrictSearch'
-          ],
+          ]
         });
 
         setAMap(AMapInstance);
@@ -272,7 +273,8 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
             layers: [
               new AMapInstance.TileLayer.Satellite(),
               new AMapInstance.TileLayer.RoadNet()
-            ]
+            ],
+            preserveDrawingBuffer: true // 支持地图截图
           });
 
           // 添加工具条
