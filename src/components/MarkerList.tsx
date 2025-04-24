@@ -11,6 +11,7 @@ interface MarkerListProps {
   onSelectMarker: (marker: Marker) => void;
   onUpdateMarker: (marker: Marker) => void;
   onDeleteMarker: (id: number) => void;
+  mapRef?: React.RefObject<any>;
 }
 
 export const MarkerList = ({
@@ -20,6 +21,7 @@ export const MarkerList = ({
   onSelectMarker,
   onUpdateMarker,
   onDeleteMarker,
+  mapRef,
 }: MarkerListProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'importance' | 'name' | 'createdAt'>('importance');
@@ -164,6 +166,88 @@ export const MarkerList = ({
     reader.readAsArrayBuffer(file);
   };
 
+  // 导出地图截图
+  const exportMapScreenshot = async () => {
+    try {
+      if (!mapRef?.current) {
+        alert('未找到地图实例');
+        return;
+      }
+
+      // 显示加载提示
+      const loadingToast = document.createElement('div');
+      loadingToast.className = 'fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-70 text-white px-4 py-2 rounded z-50';
+      loadingToast.textContent = '准备截图...';
+      document.body.appendChild(loadingToast);
+
+      try {
+        // 获取行政区域边界
+        loadingToast.textContent = '正在获取行政区域边界...';
+        await mapRef.current.getDistrictBoundary();
+
+        // 等待地图渲染完成
+        loadingToast.textContent = '等待地图渲染完成...';
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 准备截图
+        loadingToast.textContent = '正在准备截图...';
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // 尝试截图
+        loadingToast.textContent = '正在生成截图...';
+        try {
+          const imageUrl = await mapRef.current.captureMap();
+          
+          // 创建下载链接
+          const link = document.createElement('a');
+          link.href = imageUrl;
+          link.download = `地图截图_${new Date().toISOString().slice(0, 10)}.png`;
+          
+          // 下载图片
+          loadingToast.textContent = '截图成功！正在下载...';
+          link.click();
+          
+          // 显示成功提示
+          setTimeout(() => {
+            loadingToast.textContent = '截图已保存到您的下载文件夹';
+            setTimeout(() => loadingToast.remove(), 2000);
+          }, 1000);
+        } catch (error) {
+          console.error('截图失败:', error);
+          loadingToast.textContent = '截图失败，正在重试...';
+          
+          // 再等待一段时间后重试
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          try {
+            const imageUrl = await mapRef.current.captureMap();
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = `地图截图_${new Date().toISOString().slice(0, 10)}.png`;
+            link.click();
+            
+            // 显示成功提示
+            loadingToast.textContent = '截图成功！';
+            setTimeout(() => loadingToast.remove(), 2000);
+          } catch (retryError) {
+            console.error('截图重试失败:', retryError);
+            loadingToast.textContent = '截图失败，请稍后重试或刷新页面后再试';
+            setTimeout(() => loadingToast.remove(), 3000);
+          }
+        }
+      } catch (error) {
+        console.error('导出地图截图失败:', error);
+        loadingToast.textContent = '导出失败: ' + (error instanceof Error ? error.message : '未知错误');
+        setTimeout(() => loadingToast.remove(), 3000);
+      }
+    } catch (error) {
+      console.error('导出地图截图失败:', error);
+      alert('导出地图截图失败: ' + (error instanceof Error ? error.message : '未知错误'));
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       {/* 标题和工具栏 */}
@@ -212,6 +296,12 @@ export const MarkerList = ({
             disabled={sortedMarkers.length === 0}
           >
             导出Excel
+          </button>
+          <button 
+            onClick={exportMapScreenshot} 
+            className="px-3 py-1 bg-blue-500 text-white rounded"
+          >
+            导出地图
           </button>
           <label className="px-3 py-1 bg-blue-500 text-white rounded cursor-pointer">
             导入Excel

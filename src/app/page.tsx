@@ -118,6 +118,7 @@ export default function Home() {
           onSelectMarker={handleMarkerSelect}
           onUpdateMarker={handleUpdateMarker}
           onDeleteMarker={handleDeleteMarker}
+          mapRef={mapRef}
         />
       </div>
     </main>

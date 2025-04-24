@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Marker } from '@/types/marker';
+import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 
 // 定义搜索结果类型接口
 interface SearchTip {
@@ -30,6 +32,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
   const [searchResult, setSearchResult] = useState<SearchTip[]>([]);
   const [loading, setLoading] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; lng: number; lat: number } | null>(null);
+  const [districtBoundary, setDistrictBoundary] = useState<any>(null);
 
   // 暴露给父组件的方法
   useImperativeHandle(ref, () => ({
@@ -37,6 +40,193 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
       if (map) {
         map.setCenter([marker.longitude, marker.latitude]);
         map.setZoom(16);
+      }
+    },
+    captureMap: () => {
+      return new Promise((resolve, reject) => {
+        if (!map) {
+          reject(new Error('地图实例未初始化'));
+          return;
+        }
+
+        try {
+          // 获取地图容器
+          const mapContainer = map.getContainer();
+          if (!mapContainer) {
+            reject(new Error('未找到地图容器'));
+            return;
+          }
+
+          // 防止地图图层被剪裁
+          const originalStyle = mapContainer.getAttribute('style') || '';
+          
+          // 设置临时样式，确保所有图层都可见
+          mapContainer.setAttribute('style', 
+            `${originalStyle}; overflow: visible !important; background-color: white !important;`
+          );
+
+          // 使用 html-to-image 库截取地图
+          htmlToImage.toPng(mapContainer, {
+            cacheBust: true,
+            pixelRatio: 2,
+            quality: 1.0,
+            skipFonts: true,
+            backgroundColor: '#ffffff',
+            filter: (node) => {
+              // 过滤掉 logo 和版权信息等元素
+              if (node.classList && 
+                 (node.classList.contains('amap-logo') || 
+                  node.classList.contains('amap-copyright') ||
+                  node.classList.contains('amap-controls'))) {
+                return false;
+              }
+              return true;
+            }
+          })
+          .then((dataUrl) => {
+            // 恢复原始样式
+            mapContainer.setAttribute('style', originalStyle);
+            
+            // 返回图片数据
+            resolve(dataUrl);
+          })
+          .catch((error) => {
+            // 恢复原始样式
+            mapContainer.setAttribute('style', originalStyle);
+            
+            // 如果 html-to-image 失败，尝试使用 html2canvas 作为备选
+            console.warn('html-to-image 截图失败，尝试使用 html2canvas...', error);
+            
+            html2canvas(mapContainer, {
+              useCORS: true,
+              allowTaint: true,
+              scale: 2,
+              logging: false,
+              backgroundColor: '#ffffff',
+              ignoreElements: (element) => {
+                // 忽略地图控件和版权信息
+                return element.classList && 
+                  (element.classList.contains('amap-logo') || 
+                   element.classList.contains('amap-copyright') ||
+                   element.classList.contains('amap-controls'));
+              }
+            }).then(canvas => {
+              // 将 canvas 转换为图片
+              const imgData = canvas.toDataURL('image/png');
+              resolve(imgData);
+            }).catch(err => {
+              reject(err);
+            });
+          });
+        } catch (error) {
+          reject(error);
+        }
+      });
+    },
+    getDistrictBoundary: async () => {
+      if (!map || !AMap) return null;
+      
+      try {
+        const center = map.getCenter();
+        const districtSearch = new AMap.DistrictSearch({
+          level: 'district',
+          subdistrict: 0,
+          extensions: 'all'
+        });
+
+        return new Promise((resolve, reject) => {
+          // 设置超时时间
+          const timeout = setTimeout(() => {
+            reject(new Error('获取行政区域边界超时'));
+          }, 10000);
+
+          districtSearch.search(center, (status: string, result: any) => {
+            clearTimeout(timeout);
+            
+            if (status === 'complete' && result.districtList && result.districtList.length > 0) {
+              const bounds = result.districtList[0].boundaries;
+              if (bounds && bounds.length > 0) {
+                // 清除之前的边界
+                if (districtBoundary) {
+                  map.remove(districtBoundary);
+                }
+                
+                // 创建新的边界
+                const polygon = new AMap.Polygon({
+                  path: bounds,
+                  strokeWeight: 2,
+                  strokeColor: '#FF0000',
+                  fillColor: '#FF0000',
+                  fillOpacity: 0.1
+                });
+                
+                // 将边界添加到地图
+                polygon.setMap(map);
+                setDistrictBoundary(polygon);
+                
+                // 设置地图视野到边界范围
+                map.setFitView([polygon]);
+                map.setZoom(14);
+                
+                resolve(polygon);
+              } else {
+                // 如果没有找到边界，尝试使用当前位置的行政区划
+                const geocoder = new AMap.Geocoder();
+                geocoder.getAddress(center, (status: string, result: any) => {
+                  if (status === 'complete' && result.regeocode) {
+                    const district = result.regeocode.addressComponent.district;
+                    if (district) {
+                      // 使用区划名称重新搜索
+                      districtSearch.search(district, (status: string, result: any) => {
+                        if (status === 'complete' && result.districtList && result.districtList.length > 0) {
+                          const bounds = result.districtList[0].boundaries;
+                          if (bounds && bounds.length > 0) {
+                            // 清除之前的边界
+                            if (districtBoundary) {
+                              map.remove(districtBoundary);
+                            }
+                            
+                            // 创建新的边界
+                            const polygon = new AMap.Polygon({
+                              path: bounds,
+                              strokeWeight: 2,
+                              strokeColor: '#FF0000',
+                              fillColor: '#FF0000',
+                              fillOpacity: 0.1
+                            });
+                            
+                            // 将边界添加到地图
+                            polygon.setMap(map);
+                            setDistrictBoundary(polygon);
+                            
+                            // 设置地图视野到边界范围
+                            map.setFitView([polygon]);
+                            map.setZoom(14);
+                            
+                            resolve(polygon);
+                          } else {
+                            reject(new Error('未找到行政区域边界'));
+                          }
+                        } else {
+                          reject(new Error('获取行政区域边界失败'));
+                        }
+                      });
+                    } else {
+                      reject(new Error('无法获取当前位置的行政区划'));
+                    }
+                  } else {
+                    reject(new Error('无法获取当前位置的行政区划'));
+                  }
+                });
+              }
+            } else {
+              reject(new Error('获取行政区域边界失败'));
+            }
+          });
+        });
+      } catch (error) {
+        console.error('获取行政区域边界失败:', error);
+        return null;
       }
     }
   }));
@@ -75,7 +265,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
         if (mapContainerRef.current) {
           const mapInstance = new AMapInstance.Map(mapContainerRef.current, {
             viewMode: '2D',
-            zoom: 18,
+            zoom: 14,
             center: [120.169536, 29.330437],
             resizeEnable: true,
             mapStyle: 'satellite',
@@ -114,18 +304,21 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
           // 初始化行政区域边界显示
           const districtSearch = new AMapInstance.DistrictSearch({
             level: 'district',
-            subdistrict: 0
+            subdistrict: 0,
+            extensions: 'all'
           });
 
           // 获取当前地图中心点所在区域
-          mapInstance.on('moveend', () => {
+          const loadDistrictBoundary = () => {
             const center = mapInstance.getCenter();
             districtSearch.search(center, (status: string, result: any) => {
-              if (status === 'complete') {
+              if (status === 'complete' && result.districtList && result.districtList.length > 0) {
                 const bounds = result.districtList[0].boundaries;
-                if (bounds) {
+                if (bounds && bounds.length > 0) {
                   // 清除之前的边界
-                  mapInstance.remove(markerLayerRef.current);
+                  if (districtBoundary) {
+                    mapInstance.remove(districtBoundary);
+                  }
                   
                   // 创建新的边界
                   const polygon = new AMapInstance.Polygon({
@@ -138,10 +331,17 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
                   
                   // 将边界添加到地图
                   polygon.setMap(mapInstance);
+                  setDistrictBoundary(polygon);
                 }
               }
             });
-          });
+          };
+
+          // 初始加载行政区域边界
+          loadDistrictBoundary();
+
+          // 地图移动结束后重新加载行政区域边界
+          mapInstance.on('moveend', loadDistrictBoundary);
 
           setMap(mapInstance);
         }
@@ -367,7 +567,7 @@ const MapComponent = forwardRef<any, MapComponentProps>(({ markers, onAddMarker,
       {/* 地图容器 */}
       <div 
         ref={mapContainerRef} 
-        className="w-full h-full" 
+        className="w-full h-full map-container" 
         onContextMenu={(e) => e.preventDefault()}
       />
       
